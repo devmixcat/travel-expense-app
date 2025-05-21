@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行支出與代購管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 設定全局字體為 Inter，並提供備用字體 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 輕灰色背景 */
+        }
+        /* Tab 按鈕的活動狀態樣式 */
+        .tab-button.active {
+            background-color: #10B981; /* 翠綠色 */
+            color: white;
+        }
+        /* 隱藏的 Tab 內容 */
+        .tab-content.hidden {
+            display: none;
+        }
+        /* 確保 canvas 在小螢幕上也能自適應 */
+        #pieChartCanvas {
+            max-width: 100%;
+            height: auto;
+            display: block; /* 移除額外空間 */
+            margin: 0 auto; /* 居中 */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <div class="container mx-auto p-4 flex-grow">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6 rounded-lg p-2 bg-white shadow-md">
+            旅行支出與代購管理
+        </h1>
+
+        <div class="flex justify-center mb-6">
+            <button id="costTabBtn" class="tab-button px-6 py-3 rounded-l-lg text-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors duration-200 active">
+                成本計算
+            </button>
+            <button id="purchaseTabBtn" class="tab-button px-6 py-3 text-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors duration-200">
+                代購項目
+            </button>
+            <button id="exchangeRateTabBtn" class="tab-button px-6 py-3 text-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors duration-200">
+                匯率及項目設定
+            </button>
+            <button id="totalCostSummaryTabBtn" class="tab-button px-6 py-3 rounded-r-lg text-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors duration-200">
+                總成本
+            </button>
+        </div>
+
+        <div id="costSection" class="tab-content bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">成本計算</h2>
+
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">新增成本項目</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <input type="text" id="costItemName" placeholder="項目名稱 (例如: 交通)" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="costItemAmount" placeholder="金額" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    <select id="costItemCurrency" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        </select>
+                    <select id="commonItemSelect" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 lg:col-span-3">
+                        <option value="">選擇常用項目</option>
+                    </select>
+                </div>
+                <button id="addCostItemBtn" class="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors duration-200 font-bold">
+                    新增成本項目
+                </button>
+            </div>
+
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">成本項目列表</h3>
+                <ul id="costItemsList" class="divide-y divide-gray-200">
+                    </ul>
+            </div>
+            </div>
+
+        <div id="purchaseSection" class="tab-content bg-white p-6 rounded-lg shadow-md hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">代購項目</h2>
+
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">新增代購項目</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <input type="text" id="purchaseItemName" placeholder="項目名稱" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="purchaseItemPrice" placeholder="價格" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    <select id="purchaseItemCurrency" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        </select>
+                    <input type="file" id="purchaseItemPhotoInput" accept="image/*" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 col-span-1 md:col-span-2 lg:col-span-3">
+                    <div class="col-span-1 md:col-span-2 lg:col-span-3 text-sm text-gray-500 mt-2">
+                        圖片預覽：
+                        <img id="purchaseItemPhotoPreview" src="https://placehold.co/100x100/e0e0e0/ffffff?text=無照片" alt="Photo Preview" class="mt-2 rounded-md max-w-[100px] max-h-[100px] object-cover">
+                    </div>
+                </div>
+                <button id="addPurchaseItemBtn" class="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors duration-200 font-bold">
+                    新增代購項目
+                </button>
+            </div>
+
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">代購項目列表</h3>
+                <ul id="purchaseItemsList" class="divide-y divide-gray-200">
+                    </ul>
+            </div>
+        </div>
+
+        <div id="exchangeRateSection" class="tab-content bg-white p-6 rounded-lg shadow-md hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">匯率及項目設定</h2>
+
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">當前匯率 (相對於 <span id="baseCurrencyDisplayRates" class="font-bold">TWD</span>)</h3>
+                <div id="exchangeRatesList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    </div>
+                <button id="updateRatesBtn" class="w-full bg-blue-600 text-white py-3 mt-4 rounded-md hover:bg-blue-700 transition-colors duration-200 font-bold">
+                    更新匯率
+                </button>
+            </div>
+
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">常用項目設定</h3>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                    <input type="text" id="commonItemNameInput" placeholder="新增常用項目名稱" class="flex-grow p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    <button id="addCommonItemBtn" class="bg-green-600 text-white py-3 px-6 rounded-md hover:bg-green-700 transition-colors duration-200 font-bold sm:w-auto">
+                        新增常用項目
+                    </button>
+                </div>
+                <ul id="commonItemsList" class="divide-y divide-gray-200">
+                    </ul>
+            </div>
+        </div>
+
+        <div id="totalCostSummarySection" class="tab-content bg-white p-6 rounded-lg shadow-md hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">所有項目總覽</h2>
+            
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">成本計算項目 (新台幣)</h3>
+                <ul id="costSummaryList" class="divide-y divide-gray-200">
+                    </ul>
+            </div>
+
+            <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                <h3 class="text-xl font-medium text-gray-600 mb-3">代購項目 (新台幣)</h3>
+                <ul id="purchaseSummaryList" class="divide-y divide-gray-200">
+                    </ul>
+            </div>
+
+            <div class="p-4 border border-gray-200 rounded-lg bg-blue-50">
+                <h3 class="text-xl font-medium text-gray-700 flex justify-between items-center">
+                    <span>總計 (<span id="overallTotalCurrency" class="font-bold">TWD</span>):</span>
+                    <span id="overallTotalAmount" class="text-2xl font-bold text-blue-700">0.00</span>
+                </h3>
+            </div>
+        </div>
+    </div>
+    <canvas id="imageCompressionCanvas" class="hidden"></canvas>
+
+    <script>
+        // MARK: - 共用匯率管理
+        class ExchangeRateManager {
+            constructor() {
+                this.baseCurrency = "TWD"; // 預設基準貨幣為新台幣
+                this.currentExchangeRates = {
+                    "USD": 30.5,
+                    "JPY": 0.2,
+                    "TWD": 1.0,
+                    "EUR": 33.0,
+                    "CNY": 4.3,
+                    "KRW": 0.023
+                };
+                this.listeners = []; // 用於通知匯率變化的監聽器
+                this.loadRates(); // 在建構時載入儲存的匯率
+            }
+
+            // 將匯率儲存到 localStorage
+            saveRates() {
+                try {
+                    localStorage.setItem('exchangeRates', JSON.stringify(this.currentExchangeRates));
+                } catch (e) {
+                    console.error("儲存匯率到 localStorage 失敗:", e);
+                }
+            }
+
+            // 從 localStorage 載入匯率
+            loadRates() {
+                try {
+                    const savedRates = localStorage.getItem('exchangeRates');
+                    if (savedRates) {
+                        this.currentExchangeRates = JSON.parse(savedRates);
+                    }
+                } catch (e) {
+                    console.error("從 localStorage 載入匯率失敗:", e);
+                }
+            }
+
+            // 更新指定貨幣的匯率
+            updateExchangeRate(currency, rate) {
+                this.currentExchangeRates[currency] = rate;
+                this.saveRates(); // 匯率更新後儲存
+                this.notifyListeners(); // 通知所有監聽器匯率已更新
+            }
+
+            // 獲取當前匯率
+            getRate(currency) {
+                return this.currentExchangeRates[currency] || 1.0;
+            }
+
+            // 獲取所有可用的貨幣列表
+            get availableCurrencies() {
+                return Object.keys(this.currentExchangeRates).sort();
+            }
+
+            // 添加監聽器
+            addListener(callback) {
+                this.listeners.push(callback);
+            }
+
+            // 移除監聽器
+            removeListener(callback) {
+                this.listeners = this.listeners.filter(listener => listener !== callback);
+            }
+
+            // 通知所有監聽器
+            notifyListeners() {
+                this.listeners.forEach(callback => callback());
+            }
+
+            // 渲染匯率列表 (現在由 ExchangeRateManager 自己負責渲染，並在匯率變動時更新)
+            renderExchangeRates() {
+                const listElement = document.getElementById('exchangeRatesList');
+                listElement.innerHTML = ''; // 清空現有列表
+
+                const sortedCurrencies = this.availableCurrencies;
+
+                sortedCurrencies.forEach(currency => {
+                    if (currency !== this.baseCurrency) { // 不顯示基準貨幣兌換自身的匯率
+                        const rate = this.getRate(currency);
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center space-x-2';
+                        div.innerHTML = `
+                            <label for="rate-${currency}" class="text-gray-700 whitespace-nowrap">${currency} 兌 ${this.baseCurrency}:</label>
+                            <input type="number" id="rate-${currency}" value="${rate.toFixed(4)}" step="0.0001"
+                                class="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 w-24">
+                        `;
+                        listElement.appendChild(div);
+
+                        // 為匯率輸入框添加事件監聽器
+                        div.querySelector(`#rate-${currency}`).onchange = (event) => {
+                            const newRate = parseFloat(event.target.value);
+                            if (!isNaN(newRate) && newRate > 0) {
+                                this.updateExchangeRate(currency, newRate); // 更新共用匯率
+                            } else {
+                                event.target.value = this.getRate(currency).toFixed(4); // 如果輸入無效則恢復原值
+                            }
+                        };
+                    }
+                });
+                document.getElementById('baseCurrencyDisplayRates').textContent = this.baseCurrency; // 更新匯率設定頁的基準貨幣顯示
+            }
+        }
+
+        // MARK: - 常用項目管理
+        class CommonItemsManager {
+            constructor() {
+                this.commonItems = [
+                    { id: 1, name: "交通" },
+                    { id: 2, name: "食物" },
+                    { id: 3, name: "住宿" },
+                    { id: 4, name: "人力" },
+                    { id: 5, name: "購物" }
+                ]; // 預設常用項目
+                this.listeners = [];
+                this.loadItems(); // 在建構時載入儲存的項目
+            }
+
+            // 將常用項目儲存到 localStorage
+            saveItems() {
+                try {
+                    localStorage.setItem('commonItems', JSON.stringify(this.commonItems));
+                } catch (e) {
+                    console.error("儲存常用項目到 localStorage 失敗:", e);
+                }
+            }
+
+            // 從 localStorage 載入常用項目
+            loadItems() {
+                try {
+                    const savedItems = localStorage.getItem('commonItems');
+                    if (savedItems) {
+                        this.commonItems = JSON.parse(savedItems);
+                    }
+                } catch (e) {
+                    console.error("從 localStorage 載入常用項目失敗:", e);
+                }
+            }
+
+            addCommonItem(name) {
+                const newItem = { id: Date.now() + Math.random(), name: name };
+                this.commonItems.push(newItem);
+                this.saveItems(); // 新增後儲存
+                this.renderCommonItems();
+                this.notifyListeners();
+            }
+
+            removeCommonItem(id) {
+                this.commonItems = this.commonItems.filter(item => item.id !== id);
+                this.saveItems(); // 刪除後儲存
+                this.renderCommonItems();
+                this.notifyListeners();
+            }
+
+            getCommonItems() {
+                return this.commonItems.sort((a, b) => a.name.localeCompare(b.name)); // 按名稱排序
+            }
+
+            addListener(callback) {
+                this.listeners.push(callback);
+            }
+
+            removeListener(callback) {
+                this.listeners = this.listeners.filter(listener => listener !== callback);
+            }
+
+            notifyListeners() {
+                this.listeners.forEach(callback => callback());
+            }
+
+            renderCommonItems() {
+                const listElement = document.getElementById('commonItemsList');
+                listElement.innerHTML = ''; // 清空現有列表
+
+                if (this.commonItems.length === 0) {
+                    listElement.innerHTML = '<li class="p-3 text-gray-500">目前沒有常用項目。</li>';
+                    return;
+                }
+
+                this.commonItems.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded-md';
+                    listItem.innerHTML = `
+                        <span class="text-gray-800 font-medium">${item.name}</span>
+                        <button data-id="${item.id}" class="delete-common-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200">
+                            刪除
+                        </button>
+                    `;
+                    listElement.appendChild(listItem);
+                });
+
+                // 為每個刪除按鈕添加事件監聽器
+                document.querySelectorAll('.delete-common-item-btn').forEach(button => {
+                    button.onclick = (event) => {
+                        const idToDelete = parseFloat(event.target.dataset.id);
+                        this.removeCommonItem(idToDelete);
+                    };
+                });
+            }
+        }
+
+
+        // MARK: - 成本計算模型
+        // 定義 CostItem 類別，用於表示單個成本項目
+        class CostItem {
+            constructor(name, amount, currency, exchangeRateToBase) {
+                this.id = Date.now() + Math.random(); // 簡單的唯一 ID
+                this.name = name;
+                this.amount = amount;
+                this.currency = currency;
+                this.exchangeRateToBase = exchangeRateToBase; // 記錄建立時的匯率
+            }
+        }
+
+        // 定義 CostCalculator 類別，用於管理成本項目和匯率
+        class CostCalculator {
+            constructor(exchangeRateManager, commonItemsManager) { // 移除 purchaseList 參數
+                this.costItems = []; // 儲存所有成本項目
+                this.exchangeRateManager = exchangeRateManager; // 引用共用匯率管理器
+                this.commonItemsManager = commonItemsManager; // 引用常用項目管理器
+                this.listeners = []; // 新增監聽器陣列
+                this.loadItems(); // 在建構時載入儲存的項目
+
+                // 監聽匯率變化，當匯率更新時，重新渲染成本項目列表
+                this.exchangeRateManager.addListener(() => {
+                    this.renderCostItems();
+                });
+
+                // 新增監聽常用項目變化，當常用項目增減時，更新常用項目下拉選單
+                this.commonItemsManager.addListener(() => {
+                    this.populateCommonItemsDropdown();
+                });
+            }
+
+            // 添加監聽器
+            addListener(callback) {
+                this.listeners.push(callback);
+            }
+
+            // 移除監聽器
+            removeListener(callback) {
+                this.listeners = this.listeners.filter(listener => listener !== callback);
+            }
+
+            // 通知所有監聽器
+            notifyListeners() {
+                this.listeners.forEach(callback => callback());
+            }
+
+            // 將成本項目儲存到 localStorage
+            saveItems() {
+                try {
+                    localStorage.setItem('costItems', JSON.stringify(this.costItems));
+                } catch (e) {
+                    console.error("儲存成本項目到 localStorage 失敗:", e);
+                }
+            }
+
+            // 從 localStorage 載入成本項目
+            loadItems() {
+                try {
+                    const savedItems = localStorage.getItem('costItems');
+                    if (savedItems) {
+                        this.costItems = JSON.parse(savedItems);
+                    }
+                } catch (e) {
+                    console.error("從 localStorage 載入成本項目失敗:", e);
+                }
+            }
+
+            // 新增成本項目
+            addCostItem(name, amount, currency) {
+                const rate = this.exchangeRateManager.getRate(currency); // 從共用管理器獲取當前匯率
+                const newItem = new CostItem(name, amount, currency, rate);
+                this.costItems.push(newItem);
+                this.saveItems(); // 新增後儲存
+                this.renderCostItems(); // 更新列表顯示
+                this.notifyListeners(); // 通知監聽者項目已變更
+            }
+
+            // 移除成本項目
+            removeCostItem(id) {
+                this.costItems = this.costItems.filter(item => item.id !== id);
+                this.saveItems(); // 刪除後儲存
+                this.renderCostItems(); // 更新列表顯示
+                this.notifyListeners(); // 通知監聽者項目已變更
+            }
+            
+            // MARK: - 成本計算器的渲染函數
+            // 渲染成本項目列表
+            renderCostItems() {
+                const listElement = document.getElementById('costItemsList');
+                listElement.innerHTML = ''; // 清空現有列表
+
+                if (this.costItems.length === 0) {
+                    listElement.innerHTML = '<li class="p-3 text-gray-500">目前沒有成本項目。</li>';
+                    return;
+                }
+
+                this.costItems.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded-md';
+                    const convertedAmount = item.amount * this.exchangeRateManager.getRate(item.currency); // 使用當前匯率換算
+                    listItem.innerHTML = `
+                        <div>
+                            <p class="text-gray-800 font-medium">${item.name}</p>
+                            <p class="text-sm text-gray-600">${item.amount.toFixed(2)} ${item.currency} 
+                                (<span class="font-semibold">${convertedAmount.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>)
+                            </p>
+                        </div>
+                        <button data-id="${item.id}" class="delete-cost-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200">
+                            刪除
+                        </button>
+                    `;
+                    listElement.appendChild(listItem);
+                });
+
+                // 為每個刪除按鈕添加事件監聽器
+                document.querySelectorAll('.delete-cost-item-btn').forEach(button => {
+                    button.onclick = (event) => {
+                        const idToDelete = parseFloat(event.target.dataset.id);
+                        this.removeCostItem(idToDelete);
+                    };
+                });
+            }
+
+            // 填充貨幣選擇下拉菜單和常用項目下拉選單
+            populateCurrencyDropdowns() {
+                const costSelectElement = document.getElementById('costItemCurrency');
+                const purchaseSelectElement = document.getElementById('purchaseItemCurrency');
+                
+                const currencies = this.exchangeRateManager.availableCurrencies;
+
+                // 清空並填充成本計算的下拉選單
+                costSelectElement.innerHTML = '';
+                currencies.forEach(currency => {
+                    const option = document.createElement('option');
+                    option.value = currency;
+                    option.textContent = currency;
+                    costSelectElement.appendChild(option);
+                });
+                costSelectElement.value = this.exchangeRateManager.baseCurrency;
+
+                // 清空並填充代購項目的下拉選單
+                purchaseSelectElement.innerHTML = '';
+                currencies.forEach(currency => {
+                    const option = document.createElement('option');
+                    option.value = currency;
+                    option.textContent = currency;
+                    purchaseSelectElement.appendChild(option);
+                });
+                purchaseSelectElement.value = this.exchangeRateManager.baseCurrency;
+
+                // 填充常用項目下拉選單
+                this.populateCommonItemsDropdown();
+            }
+
+            // 填充常用項目下拉選單 (獨立出來方便在常用項目變更時更新)
+            populateCommonItemsDropdown() {
+                const commonItemSelectElement = document.getElementById('commonItemSelect');
+                if (commonItemSelectElement) {
+                    commonItemSelectElement.innerHTML = '<option value="">選擇常用項目</option>'; // 預設選項
+                    this.commonItemsManager.getCommonItems().forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.name;
+                        option.textContent = item.name;
+                        commonItemSelectElement.appendChild(option);
+                    });
+                }
+            }
+        }
+
+        // MARK: - 代購項目模型
+        // 定義 PurchaseItem 類別，用於表示單個代購項目
+        class PurchaseItem {
+            constructor(name, price, currency, exchangeRateToBase, photoDataUrl) { // 變更為 photoDataUrl
+                this.id = Date.now() + Math.random(); // 簡單的唯一 ID
+                this.name = name;
+                this.price = price;
+                this.currency = currency; // 新增貨幣屬性
+                this.exchangeRateToBase = exchangeRateToBase; // 記錄建立時的匯率
+                this.photoDataUrl = photoDataUrl; // 儲存 Base64 字串
+            }
+        }
+
+        // 定義 PurchaseList 類別，用於管理代購項目
+        class PurchaseList {
+            constructor(exchangeRateManager) {
+                this.items = []; // 儲存所有代購項目
+                this.exchangeRateManager = exchangeRateManager; // 引用共用匯率管理器
+                this.listeners = []; // 新增監聽器陣列
+                this.loadItems(); // 在建構時載入儲存的項目
+
+                // 監聽匯率變化，當匯率更新時，重新渲染代購項目列表
+                this.exchangeRateManager.addListener(() => this.renderPurchaseItems());
+            }
+
+            // 將代購項目儲存到 localStorage
+            saveItems() {
+                try {
+                    localStorage.setItem('purchaseItems', JSON.stringify(this.items));
+                } catch (e) {
+                    console.error("儲存代購項目到 localStorage 失敗:", e);
+                }
+            }
+
+            // 從 localStorage 載入代購項目
+            loadItems() {
+                try {
+                    const savedItems = localStorage.getItem('purchaseItems');
+                    if (savedItems) {
+                        this.items = JSON.parse(savedItems);
+                    }
+                } catch (e) {
+                    console.error("從 localStorage 載入代購項目失敗:", e);
+                }
+            }
+
+            // 添加監聽器
+            addListener(callback) {
+                this.listeners.push(callback);
+            }
+
+            // 移除監聽器
+            removeListener(callback) {
+                this.listeners = this.listeners.filter(listener => listener !== callback);
+            }
+
+            // 通知所有監聽器
+            notifyListeners() {
+                this.listeners.forEach(callback => callback());
+            }
+
+            // 新增代購項目
+            addPurchaseItem(name, price, currency, photoDataUrl) { // 變更為 photoDataUrl
+                const rate = this.exchangeRateManager.getRate(currency); // 從共用管理器獲取當前匯率
+                const newItem = new PurchaseItem(name, price, currency, rate, photoDataUrl);
+                this.items.push(newItem);
+                this.saveItems(); // 新增後儲存
+                this.renderPurchaseItems(); // 更新列表顯示
+                this.notifyListeners(); // 通知監聽者項目已變更
+            }
+
+            // 移除代購項目
+            removePurchaseItem(id) {
+                this.items = this.items.filter(item => item.id !== id);
+                this.saveItems(); // 刪除後儲存
+                this.renderPurchaseItems(); // 更新列表顯示
+                this.notifyListeners(); // 通知監聽者項目已變更
+            }
+
+            // MARK: - 代購列表的渲染函數
+            // 渲染代購項目列表
+            renderPurchaseItems() {
+                const listElement = document.getElementById('purchaseItemsList');
+                listElement.innerHTML = ''; // 清空現有列表
+
+                if (this.items.length === 0) {
+                    listElement.innerHTML = '<li class="p-3 text-gray-500">目前沒有代購項目。</li>';
+                    return;
+                }
+
+                this.items.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'flex items-center py-3 px-2 hover:bg-gray-50 rounded-md';
+                    // 使用 item.photoDataUrl 來顯示圖片，如果沒有則使用佔位符
+                    const photoSrc = item.photoDataUrl || 'https://placehold.co/50x50/e0e0e0/ffffff?text=無';
+                    const convertedPrice = item.price * this.exchangeRateManager.getRate(item.currency); // 使用當前匯率換算
+                    listItem.innerHTML = `
+                        <img src="${photoSrc}" alt="${item.name}" class="w-12 h-12 object-cover rounded-md mr-4">
+                        <div class="flex-grow">
+                            <p class="text-gray-800 font-medium">${item.name}</p>
+                            <p class="text-sm text-gray-600">價格: ${item.price.toFixed(2)} ${item.currency}
+                                (<span class="font-semibold">${convertedPrice.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>)
+                            </p>
+                        </div>
+                        <button data-id="${item.id}" class="delete-purchase-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200">
+                            刪除
+                        </button>
+                    `;
+                    listElement.appendChild(listItem);
+                });
+
+                // 為每個刪除按鈕添加事件監聽器
+                document.querySelectorAll('.delete-purchase-item-btn').forEach(button => {
+                    button.onclick = (event) => {
+                        const idToDelete = parseFloat(event.target.dataset.id);
+                        this.removePurchaseItem(idToDelete);
+                    };
+                });
+            }
+        }
+
+        // MARK: - 總成本摘要模型
+        class TotalCostSummary {
+            constructor(costCalculator, purchaseList, exchangeRateManager) {
+                this.costCalculator = costCalculator;
+                this.purchaseList = purchaseList;
+                this.exchangeRateManager = exchangeRateManager;
+
+                // 監聽成本計算器、代購列表和匯率管理器的變化，以重新渲染摘要
+                this.costCalculator.addListener(() => this.renderSummary());
+                this.purchaseList.addListener(() => this.renderSummary());
+                this.exchangeRateManager.addListener(() => this.renderSummary());
+            }
+
+            // 收集所有項目並轉換為基準貨幣
+            getAllItemsInBaseCurrency() {
+                let allItems = [];
+
+                // 添加成本計算項目
+                this.costCalculator.costItems.forEach(item => {
+                    // 使用當前匯率進行換算
+                    const convertedAmount = item.amount * this.exchangeRateManager.getRate(item.currency);
+                    allItems.push({
+                        name: item.name,
+                        amount: convertedAmount, // 轉換為基準貨幣的金額
+                        originalAmount: item.amount,
+                        originalCurrency: item.currency,
+                        type: 'cost'
+                    });
+                });
+
+                // 添加代購項目
+                this.purchaseList.items.forEach(item => {
+                    // 使用當前匯率進行換算
+                    const convertedAmount = item.price * this.exchangeRateManager.getRate(item.currency);
+                    allItems.push({
+                        name: item.name,
+                        amount: convertedAmount, // 轉換為基準貨幣的金額
+                        originalAmount: item.price,
+                        originalCurrency: item.currency,
+                        type: 'purchase'
+                    });
+                });
+
+                // 根據金額從大到小排序
+                return allItems.sort((a, b) => b.amount - a.amount);
+            }
+
+            // 渲染總成本摘要頁面
+            renderSummary() {
+                const allItems = this.getAllItemsInBaseCurrency();
+                const costItemsSummary = allItems.filter(item => item.type === 'cost');
+                const purchaseItemsSummary = allItems.filter(item => item.type === 'purchase');
+
+                const costSummaryListElement = document.getElementById('costSummaryList');
+                const purchaseSummaryListElement = document.getElementById('purchaseSummaryList');
+                
+                costSummaryListElement.innerHTML = ''; // 清空現有列表
+                purchaseSummaryListElement.innerHTML = ''; // 清空現有列表
+
+                if (costItemsSummary.length === 0) {
+                    costSummaryListElement.innerHTML = '<li class="p-3 text-gray-500">目前沒有成本計算項目可顯示。</li>';
+                } else {
+                    costItemsSummary.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'flex items-center justify-between py-2 px-2';
+                        listItem.innerHTML = `
+                            <span class="text-gray-800">${item.name} (${item.originalAmount.toFixed(2)} ${item.originalCurrency})</span>
+                            <span class="font-semibold text-gray-700">${item.amount.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>
+                        `;
+                        costSummaryListElement.appendChild(listItem);
+                    });
+                }
+
+                if (purchaseItemsSummary.length === 0) {
+                    purchaseSummaryListElement.innerHTML = '<li class="p-3 text-gray-500">目前沒有代購項目可顯示。</li>';
+                } else {
+                    purchaseItemsSummary.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'flex items-center justify-between py-2 px-2';
+                        listItem.innerHTML = `
+                            <span class="text-gray-800">${item.name} (${item.originalAmount.toFixed(2)} ${item.originalCurrency})</span>
+                            <span class="font-semibold text-gray-700">${item.amount.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>
+                        `;
+                        purchaseSummaryListElement.appendChild(listItem);
+                    });
+                }
+
+                // 更新總計
+                const overallTotal = allItems.reduce((sum, item) => sum + item.amount, 0);
+                document.getElementById('overallTotalAmount').textContent = overallTotal.toFixed(2);
+                document.getElementById('overallTotalCurrency').textContent = this.exchangeRateManager.baseCurrency;
+
+                // 圓餅圖功能已移除，不再呼叫 drawPieChart
+            }
+
+            // drawPieChart 方法已移除
+        }
+
+        // MARK: - 全局實例和事件監聽器
+        let exchangeRateManager;
+        let commonItemsManager;
+        let purchaseList;
+        let costCalculator;
+        let totalCostSummary; // 新增總成本摘要實例
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 在 DOMContentLoaded 內部初始化實例
+            exchangeRateManager = new ExchangeRateManager();
+            commonItemsManager = new CommonItemsManager();
+            purchaseList = new PurchaseList(exchangeRateManager); // purchaseList 依賴 exchangeRateManager
+            costCalculator = new CostCalculator(exchangeRateManager, commonItemsManager); // costCalculator 依賴 exchangeRateManager 和 commonItemsManager
+            totalCostSummary = new TotalCostSummary(costCalculator, purchaseList, exchangeRateManager); // totalCostSummary 依賴所有三個管理器
+
+            // 初次渲染所有列表和匯率
+            costCalculator.populateCurrencyDropdowns(); // 填充貨幣和常用項目下拉選單
+            exchangeRateManager.renderExchangeRates(); // 渲染匯率設定列表
+            commonItemsManager.renderCommonItems(); // 渲染常用項目列表
+            costCalculator.renderCostItems(); // 渲染成本項目列表
+            purchaseList.renderPurchaseItems(); // 渲染代購項目列表
+            // totalCostSummary.renderSummary(); // 總成本摘要在點擊頁籤時渲染，或在初始化後立即渲染一次
+
+            // Tab 切換邏輯
+            const costTabBtn = document.getElementById('costTabBtn');
+            const purchaseTabBtn = document.getElementById('purchaseTabBtn');
+            const exchangeRateTabBtn = document.getElementById('exchangeRateTabBtn');
+            const totalCostSummaryTabBtn = document.getElementById('totalCostSummaryTabBtn'); // 新增總成本頁籤按鈕
+            
+            const costSection = document.getElementById('costSection');
+            const purchaseSection = document.getElementById('purchaseSection');
+            const exchangeRateSection = document.getElementById('exchangeRateSection');
+            const totalCostSummarySection = document.getElementById('totalCostSummarySection'); // 新增總成本頁籤內容
+
+            // 輔助函數：顯示指定分頁，隱藏其他分頁
+            function showTab(tabToShow) {
+                const allTabs = [costSection, purchaseSection, exchangeRateSection, totalCostSummarySection];
+                const allTabButtons = [costTabBtn, purchaseTabBtn, exchangeRateTabBtn, totalCostSummaryTabBtn];
+
+                allTabs.forEach(tab => tab.classList.add('hidden'));
+                allTabButtons.forEach(btn => btn.classList.remove('active'));
+
+                tabToShow.classList.remove('hidden');
+                if (tabToShow === costSection) costTabBtn.classList.add('active');
+                else if (tabToShow === purchaseSection) purchaseTabBtn.classList.add('active');
+                else if (tabToShow === exchangeRateSection) exchangeRateTabBtn.classList.add('active');
+                else if (tabToShow === totalCostSummarySection) totalCostSummaryTabBtn.classList.add('active');
+
+                // 當切換到總成本頁籤時，重新渲染摘要
+                if (tabToShow === totalCostSummarySection) {
+                    totalCostSummary.renderSummary();
+                }
+            }
+
+            // 預設顯示成本計算分頁
+            showTab(costSection);
+
+            costTabBtn.addEventListener('click', () => showTab(costSection));
+            purchaseTabBtn.addEventListener('click', () => showTab(purchaseSection));
+            exchangeRateTabBtn.addEventListener('click', () => showTab(exchangeRateSection));
+            totalCostSummaryTabBtn.addEventListener('click', () => showTab(totalCostSummarySection)); // 總成本按鈕事件監聽器
+
+            // 成本計算器事件監聽器
+            document.getElementById('addCostItemBtn').addEventListener('click', () => {
+                const name = document.getElementById('costItemName').value.trim();
+                const amount = parseFloat(document.getElementById('costItemAmount').value);
+                const currency = document.getElementById('costItemCurrency').value;
+
+                if (name && !isNaN(amount) && amount > 0) {
+                    costCalculator.addCostItem(name, amount, currency);
+                    document.getElementById('costItemName').value = '';
+                    document.getElementById('costItemAmount').value = '';
+                    document.getElementById('commonItemSelect').value = ''; // 清空常用項目選擇
+                } else {
+                    console.error('請輸入有效的項目名稱和金額。');
+                    alert('請輸入有效的項目名稱和金額。');
+                }
+            });
+
+            // 常用項目下拉選單變更事件
+            const commonItemSelectElement = document.getElementById('commonItemSelect');
+            if (commonItemSelectElement) {
+                commonItemSelectElement.addEventListener('change', (event) => {
+                    const selectedItemName = event.target.value;
+                    document.getElementById('costItemName').value = selectedItemName; // 自動填入項目名稱
+                });
+            }
+
+            // 代購列表事件監聽器
+            // 儲存當前選擇的圖片 Base64 字串，以便在新增代購項目時使用
+            let currentPurchasePhotoDataUrl = null; 
+            const MAX_IMAGE_SIZE_BYTES = 100 * 1024; // 100KB
+            const imageCompressionCanvas = document.getElementById('imageCompressionCanvas');
+            const imageCompressionCtx = imageCompressionCanvas.getContext('2d');
+
+            document.getElementById('purchaseItemPhotoInput').addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            // 設置 canvas 尺寸，保持圖片比例
+                            let width = img.width;
+                            let height = img.height;
+                            const aspectRatio = width / height;
+
+                            // 限制最大尺寸，避免過大的圖片導致畫布過大
+                            const MAX_DIMENSION = 800; // 例如，限制最長邊為 800px
+                            if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                                if (width > height) {
+                                    width = MAX_DIMENSION;
+                                    height = width / aspectRatio;
+                                } else {
+                                    height = MAX_DIMENSION;
+                                    width = height * aspectRatio;
+                                }
+                            }
+
+                            imageCompressionCanvas.width = width;
+                            imageCompressionCanvas.height = height;
+                            imageCompressionCtx.clearRect(0, 0, width, height);
+                            imageCompressionCtx.drawImage(img, 0, 0, width, height);
+
+                            let quality = 0.8; // 初始壓縮品質
+                            let compressedDataUrl = imageCompressionCanvas.toDataURL('image/jpeg', quality);
+                            let compressedSize = (compressedDataUrl.length * 0.75) / 1024; // 估計字節大小 (KB)
+
+                            // 逐步降低品質直到達到目標大小或最低品質
+                            while (compressedSize > MAX_IMAGE_SIZE_BYTES / 1024 && quality > 0.1) {
+                                quality -= 0.1;
+                                compressedDataUrl = imageCompressionCanvas.toDataURL('image/jpeg', quality);
+                                compressedSize = (compressedDataUrl.length * 0.75) / 1024;
+                            }
+
+                            // 顯示圖片預覽
+                            document.getElementById('purchaseItemPhotoPreview').src = compressedDataUrl;
+                            currentPurchasePhotoDataUrl = compressedDataUrl; // 儲存壓縮後的 Base64 字串
+                            console.log(`圖片壓縮完成。原始尺寸: ${img.width}x${img.height}, 壓縮後尺寸: ${width.toFixed(0)}x${height.toFixed(0)}, 品質: ${quality.toFixed(1)}, 大小: ${compressedSize.toFixed(2)}KB`);
+                        };
+                        img.onerror = () => {
+                            console.error("載入圖片失敗。");
+                            alert("載入圖片失敗。");
+                            currentPurchasePhotoDataUrl = null;
+                            document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
+                        };
+                        img.src = e.target.result; // 讀取 Base64 字串作為圖片源
+                    };
+                    reader.onerror = (e) => {
+                        console.error("讀取檔案失敗:", e);
+                        alert("讀取檔案失敗。");
+                        currentPurchasePhotoDataUrl = null;
+                        document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
+                    };
+                    reader.readAsDataURL(file); // 讀取檔案為 Base64 字串
+                } else {
+                    currentPurchasePhotoDataUrl = null;
+                    document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
+                }
+            });
+
+            document.getElementById('addPurchaseItemBtn').addEventListener('click', () => {
+                const name = document.getElementById('purchaseItemName').value.trim();
+                const price = parseFloat(document.getElementById('purchaseItemPrice').value);
+                const currency = document.getElementById('purchaseItemCurrency').value;
+
+                if (name && !isNaN(price) && price > 0) {
+                    // 將 currentPurchasePhotoDataUrl 傳遞給 addPurchaseItem
+                    purchaseList.addPurchaseItem(name, price, currency, currentPurchasePhotoDataUrl);
+                    document.getElementById('purchaseItemName').value = '';
+                    document.getElementById('purchaseItemPrice').value = '';
+                    document.getElementById('purchaseItemPhotoInput').value = ''; // 清空檔案輸入框
+                    document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片'; // 重設預覽
+                    currentPurchasePhotoDataUrl = null; // 清空暫存的 Base64 字串
+                } else {
+                    console.error('請輸入有效的項目名稱和價格。');
+                    alert('請輸入有效的項目名稱和價格。');
+                }
+            });
+
+            // 常用項目設定頁面的事件監聽器
+            document.getElementById('addCommonItemBtn').addEventListener('click', () => {
+                const commonItemName = document.getElementById('commonItemNameInput').value.trim();
+                if (commonItemName) {
+                    commonItemsManager.addCommonItem(commonItemName);
+                    document.getElementById('commonItemNameInput').value = '';
+                } else {
+                    alert('請輸入常用項目名稱。');
+                }
+            });
+
+            // 更新匯率按鈕事件監聽器
+            document.getElementById('updateRatesBtn').addEventListener('click', () => {
+                exchangeRateManager.notifyListeners(); // 通知所有監聽者重新計算和渲染
+                alert('匯率已更新，所有相關金額已重新計算。'); // 提供用戶反饋
+            });
+        });
+    </script>
+</body>
+</html>

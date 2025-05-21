@@ -27,6 +27,51 @@
             display: block; /* 移除額外空間 */
             margin: 0 auto; /* 居中 */
         }
+
+        /* 針對列表中的文字，確保單行顯示並在溢出時顯示省略號 */
+        #costItemsList li p,
+        #purchaseItemsList li p,
+        #costSummaryList li span,
+        #purchaseSummaryList li span,
+        #exchangeRatesList label,
+        #commonItemsList li span { /* 新增常用項目列表的文字樣式 */
+            white-space: nowrap; /* 強制文字不換行 */
+            overflow: hidden;    /* 隱藏超出容器的內容 */
+            text-overflow: ellipsis; /* 在溢出時顯示省略號 */
+        }
+
+        /* 確保 flex 容器內的文字區塊可以正確收縮，使 ellipsis 生效 */
+        #costItemsList li > div,
+        #purchaseItemsList li > div,
+        #costSummaryList li,
+        #purchaseSummaryList li,
+        #exchangeRatesList div,
+        #commonItemsList li {
+            min-width: 0; /* 允許 flex item 縮小到其內容的最小尺寸 */
+            flex-shrink: 1; /* 允許項目收縮 */
+            flex-grow: 1; /* 允許項目增長 */
+        }
+        /* 針對代購列表中的價格資訊，確保其能夠適應空間 */
+        #purchaseItemsList li .text-sm {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 70px); /* 調整以避免與按鈕重疊 */
+        }
+        /* 針對代購列表的查看賣場按鈕，確保其不會因為文字過長而被擠壓 */
+        #purchaseItemsList li a {
+            flex-shrink: 0; /* 防止按鈕被壓縮 */
+            margin-left: auto; /* 將按鈕推到最右邊 */
+        }
+
+        /* 讓代購項目列表的每個 li 項目可點擊時有視覺回饋 */
+        #purchaseItemsList li {
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        #purchaseItemsList li:hover {
+            background-color: #f0f0f0; /* 懸停時的背景色 */
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -83,10 +128,23 @@
                 <h3 class="text-xl font-medium text-gray-600 mb-3">新增代購項目</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                     <input type="text" id="purchaseItemName" placeholder="項目名稱" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                    <input type="number" id="purchaseItemPrice" placeholder="價格" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                    <select id="purchaseItemCurrency" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    
+                    <div class="flex items-center space-x-2">
+                        <input type="number" id="purchaseItemPurchasePrice" placeholder="購買價格" step="0.01" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 flex-grow">
+                        <select id="purchaseItemCurrency" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
                         </select>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="number" id="purchaseItemSellingPrice" placeholder="販售價格 (選填)" step="0.01" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 flex-grow">
+                        <span class="ml-2 text-gray-600 font-semibold">TWD</span>
+                    </div>
+
+                    <input type="number" id="purchaseItemQuantity" placeholder="數量" value="1" min="1" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                    
                     <input type="file" id="purchaseItemPhotoInput" accept="image/*" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 col-span-1 md:col-span-2 lg:col-span-3">
+                    <input type="url" id="purchaseItemStoreLink" placeholder="賣場連結 (選填)" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 col-span-1 md:col-span-2 lg:col-span-3">
+                    <input type="url" id="purchaseItemFormLink" placeholder="表單連結 (選填)" class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 col-span-1 md:col-span-2 lg:col-span-3">
                     <div class="col-span-1 md:col-span-2 lg:col-span-3 text-sm text-gray-500 mt-2">
                         圖片預覽：
                         <img id="purchaseItemPhotoPreview" src="https://placehold.co/100x100/e0e0e0/ffffff?text=無照片" alt="Photo Preview" class="mt-2 rounded-md max-w-[100px] max-h-[100px] object-cover">
@@ -94,6 +152,9 @@
                 </div>
                 <button id="addPurchaseItemBtn" class="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition-colors duration-200 font-bold">
                     新增代購項目
+                </button>
+                <button id="cancelEditPurchaseBtn" class="w-full bg-gray-400 text-white py-3 mt-2 rounded-md hover:bg-gray-500 transition-colors duration-200 font-bold hidden">
+                    取消編輯
                 </button>
             </div>
 
@@ -150,6 +211,9 @@
                     <span id="overallTotalAmount" class="text-2xl font-bold text-blue-700">0.00</span>
                 </h3>
             </div>
+            <button id="exportCsvBtn" class="w-full bg-green-600 text-white py-3 mt-4 rounded-md hover:bg-green-700 transition-colors duration-200 font-bold">
+                匯出 CSV
+            </button>
         </div>
     </div>
     <canvas id="imageCompressionCanvas" class="hidden"></canvas>
@@ -458,13 +522,13 @@
                     listItem.className = 'flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded-md';
                     const convertedAmount = item.amount * this.exchangeRateManager.getRate(item.currency); // 使用當前匯率換算
                     listItem.innerHTML = `
-                        <div>
+                        <div class="flex-grow min-w-0">
                             <p class="text-gray-800 font-medium">${item.name}</p>
                             <p class="text-sm text-gray-600">${item.amount.toFixed(2)} ${item.currency} 
                                 (<span class="font-semibold">${convertedAmount.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>)
                             </p>
                         </div>
-                        <button data-id="${item.id}" class="delete-cost-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200">
+                        <button data-id="${item.id}" class="delete-cost-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200 flex-shrink-0">
                             刪除
                         </button>
                     `;
@@ -529,13 +593,17 @@
         // MARK: - 代購項目模型
         // 定義 PurchaseItem 類別，用於表示單個代購項目
         class PurchaseItem {
-            constructor(name, price, currency, exchangeRateToBase, photoDataUrl) { // 變更為 photoDataUrl
+            constructor(name, purchasePrice, currency, quantity, exchangeRateToBase, photoDataUrl, storeLink, formLink, sellingPrice) {
                 this.id = Date.now() + Math.random(); // 簡單的唯一 ID
                 this.name = name;
-                this.price = price;
+                this.purchasePrice = purchasePrice; // 購買價格
+                this.sellingPrice = sellingPrice;   // 販售價格
                 this.currency = currency; // 新增貨幣屬性
+                this.quantity = quantity; // 新增數量屬性
                 this.exchangeRateToBase = exchangeRateToBase; // 記錄建立時的匯率
                 this.photoDataUrl = photoDataUrl; // 儲存 Base64 字串
+                this.storeLink = storeLink; // 新增賣場連結屬性
+                this.formLink = formLink; // 新增表單連結屬性
             }
         }
 
@@ -546,9 +614,8 @@
                 this.exchangeRateManager = exchangeRateManager; // 引用共用匯率管理器
                 this.listeners = []; // 新增監聽器陣列
                 this.loadItems(); // 在建構時載入儲存的項目
-
-                // 監聽匯率變化，當匯率更新時，重新渲染代購項目列表
-                this.exchangeRateManager.addListener(() => this.renderPurchaseItems());
+                this.currentEditingItemId = null; // 新增屬性，用於追蹤正在編輯的項目 ID
+                this.currentPurchasePhotoDataUrl = null; // 將此變數移入類別
             }
 
             // 將代購項目儲存到 localStorage
@@ -588,13 +655,25 @@
             }
 
             // 新增代購項目
-            addPurchaseItem(name, price, currency, photoDataUrl) { // 變更為 photoDataUrl
+            addPurchaseItem(name, purchasePrice, currency, quantity, photoDataUrl, storeLink, formLink, sellingPrice) {
                 const rate = this.exchangeRateManager.getRate(currency); // 從共用管理器獲取當前匯率
-                const newItem = new PurchaseItem(name, price, currency, rate, photoDataUrl);
+                const newItem = new PurchaseItem(name, purchasePrice, currency, quantity, rate, photoDataUrl, storeLink, formLink, sellingPrice);
                 this.items.push(newItem);
                 this.saveItems(); // 新增後儲存
                 this.renderPurchaseItems(); // 更新列表顯示
                 this.notifyListeners(); // 通知監聽者項目已變更
+            }
+
+            // 更新代購項目
+            updatePurchaseItem(id, name, purchasePrice, currency, quantity, photoDataUrl, storeLink, formLink, sellingPrice) {
+                const itemIndex = this.items.findIndex(item => item.id === id);
+                if (itemIndex > -1) {
+                    const rate = this.exchangeRateManager.getRate(currency);
+                    this.items[itemIndex] = new PurchaseItem(name, purchasePrice, currency, quantity, rate, photoDataUrl, storeLink, formLink, sellingPrice);
+                    this.saveItems();
+                    this.renderPurchaseItems();
+                    this.notifyListeners();
+                }
             }
 
             // 移除代購項目
@@ -603,6 +682,43 @@
                 this.saveItems(); // 刪除後儲存
                 this.renderPurchaseItems(); // 更新列表顯示
                 this.notifyListeners(); // 通知監聽者項目已變更
+            }
+
+            // 載入項目到表單進行編輯
+            editPurchaseItem(id) {
+                const itemToEdit = this.items.find(item => item.id === id);
+                if (itemToEdit) {
+                    document.getElementById('purchaseItemName').value = itemToEdit.name;
+                    document.getElementById('purchaseItemPurchasePrice').value = itemToEdit.purchasePrice;
+                    document.getElementById('purchaseItemSellingPrice').value = itemToEdit.sellingPrice || ''; // 如果沒有販售價格則為空
+                    document.getElementById('purchaseItemCurrency').value = itemToEdit.currency;
+                    document.getElementById('purchaseItemQuantity').value = itemToEdit.quantity; // 載入數量
+                    document.getElementById('purchaseItemStoreLink').value = itemToEdit.storeLink || '';
+                    document.getElementById('purchaseItemFormLink').value = itemToEdit.formLink || '';
+                    document.getElementById('purchaseItemPhotoPreview').src = itemToEdit.photoDataUrl || 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
+                    this.currentPurchasePhotoDataUrl = itemToEdit.photoDataUrl; // 設置當前圖片數據
+
+                    this.currentEditingItemId = id; // 設定當前編輯的項目 ID
+                    document.getElementById('addPurchaseItemBtn').textContent = '更新代購項目';
+                    document.getElementById('cancelEditPurchaseBtn').classList.remove('hidden'); // 顯示取消編輯按鈕
+                }
+            }
+
+            // 清空代購表單
+            clearPurchaseForm() {
+                document.getElementById('purchaseItemName').value = '';
+                document.getElementById('purchaseItemPurchasePrice').value = '';
+                document.getElementById('purchaseItemSellingPrice').value = '';
+                document.getElementById('purchaseItemCurrency').value = this.exchangeRateManager.baseCurrency; // 重設貨幣為基準貨幣
+                document.getElementById('purchaseItemQuantity').value = '1'; // 重設數量為 1
+                document.getElementById('purchaseItemPhotoInput').value = ''; // 清空檔案輸入框
+                document.getElementById('purchaseItemStoreLink').value = '';
+                document.getElementById('purchaseItemFormLink').value = '';
+                document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
+                this.currentPurchasePhotoDataUrl = null; // 清空暫存的 Base64 字串
+                this.currentEditingItemId = null; // 清空編輯狀態
+                document.getElementById('addPurchaseItemBtn').textContent = '新增代購項目';
+                document.getElementById('cancelEditPurchaseBtn').classList.add('hidden'); // 隱藏取消編輯按鈕
             }
 
             // MARK: - 代購列表的渲染函數
@@ -619,30 +735,43 @@
                 this.items.forEach(item => {
                     const listItem = document.createElement('li');
                     listItem.className = 'flex items-center py-3 px-2 hover:bg-gray-50 rounded-md';
+                    // 點擊整個列表項目來編輯
+                    listItem.onclick = () => this.editPurchaseItem(item.id);
+
                     // 使用 item.photoDataUrl 來顯示圖片，如果沒有則使用佔位符
                     const photoSrc = item.photoDataUrl || 'https://placehold.co/50x50/e0e0e0/ffffff?text=無';
-                    const convertedPrice = item.price * this.exchangeRateManager.getRate(item.currency); // 使用當前匯率換算
+                    // 計算購買總價 (購買價格 * 數量) 並轉換為基準貨幣
+                    const totalPurchasePrice = item.purchasePrice * item.quantity;
+                    const convertedTotalPurchasePrice = totalPurchasePrice * this.exchangeRateManager.getRate(item.currency); 
+                    
+                    // 販售價格不再進行匯率轉換，直接使用原始值並顯示 TWD
+                    const sellingPriceDisplay = item.sellingPrice ? 
+                        `<br>販售價格: ${item.sellingPrice.toFixed(2)} ${this.exchangeRateManager.baseCurrency}` : '';
+
+                    // 賣場連結按鈕
+                    const storeLinkButtonHtml = item.storeLink ? 
+                        `<a href="${item.storeLink}" target="_blank" onclick="event.stopPropagation();" class="ml-2 bg-purple-500 text-white px-3 py-1 rounded-md text-sm hover:bg-purple-600 transition-colors duration-200 flex-shrink-0">查看賣場</a>` : '';
+                    
+                    // 表單連結按鈕
+                    const formLinkButtonHtml = item.formLink ? 
+                        `<a href="${item.formLink}" target="_blank" onclick="event.stopPropagation();" class="ml-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition-colors duration-200 flex-shrink-0">查看表單</a>` : '';
+
                     listItem.innerHTML = `
-                        <img src="${photoSrc}" alt="${item.name}" class="w-12 h-12 object-cover rounded-md mr-4">
-                        <div class="flex-grow">
-                            <p class="text-gray-800 font-medium">${item.name}</p>
-                            <p class="text-sm text-gray-600">價格: ${item.price.toFixed(2)} ${item.currency}
-                                (<span class="font-semibold">${convertedPrice.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>)
+                        <img src="${photoSrc}" alt="${item.name}" class="w-12 h-12 object-cover rounded-md mr-4 flex-shrink-0">
+                        <div class="flex-grow min-w-0">
+                            <p class="text-gray-800 font-medium">${item.name} (數量: ${item.quantity})</p>
+                            <p class="text-sm text-gray-600">購買價格: ${item.purchasePrice.toFixed(2)} ${item.currency}
+                                (<span class="font-semibold">${convertedTotalPurchasePrice.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>)
+                                ${sellingPriceDisplay}
                             </p>
                         </div>
-                        <button data-id="${item.id}" class="delete-purchase-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200">
+                        ${storeLinkButtonHtml}
+                        ${formLinkButtonHtml}
+                        <button data-id="${item.id}" onclick="event.stopPropagation(); purchaseList.removePurchaseItem(${item.id});" class="delete-purchase-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200 ml-2 flex-shrink-0">
                             刪除
                         </button>
                     `;
                     listElement.appendChild(listItem);
-                });
-
-                // 為每個刪除按鈕添加事件監聽器
-                document.querySelectorAll('.delete-purchase-item-btn').forEach(button => {
-                    button.onclick = (event) => {
-                        const idToDelete = parseFloat(event.target.dataset.id);
-                        this.removePurchaseItem(idToDelete);
-                    };
                 });
             }
         }
@@ -677,15 +806,17 @@
                     });
                 });
 
-                // 添加代購項目
+                // 添加代購項目 (只計算購買價格)
                 this.purchaseList.items.forEach(item => {
-                    // 使用當前匯率進行換算
-                    const convertedAmount = item.price * this.exchangeRateManager.getRate(item.currency);
+                    // 使用當前匯率進行換算購買價格 * 數量
+                    const convertedAmount = (item.purchasePrice * item.quantity) * this.exchangeRateManager.getRate(item.currency); 
                     allItems.push({
                         name: item.name,
-                        amount: convertedAmount, // 轉換為基準貨幣的金額
-                        originalAmount: item.price,
+                        amount: convertedAmount, // 轉換為基準貨幣的購買金額
+                        originalAmount: item.purchasePrice, // 原始購買價格
                         originalCurrency: item.currency,
+                        quantity: item.quantity, // 數量
+                        sellingPrice: item.sellingPrice, // 販售價格 (不參與此處的總額計算)
                         type: 'purchase'
                     });
                 });
@@ -726,8 +857,11 @@
                     purchaseItemsSummary.forEach(item => {
                         const listItem = document.createElement('li');
                         listItem.className = 'flex items-center justify-between py-2 px-2';
+                        // 販售價格直接顯示為 TWD，不進行匯率轉換
+                        const sellingPriceDisplay = item.sellingPrice ? 
+                            ` / 販售: ${item.sellingPrice.toFixed(2)} ${this.exchangeRateManager.baseCurrency}` : '';
                         listItem.innerHTML = `
-                            <span class="text-gray-800">${item.name} (${item.originalAmount.toFixed(2)} ${item.originalCurrency})</span>
+                            <span class="text-gray-800">${item.name} (購買: ${item.originalAmount.toFixed(2)} ${item.originalCurrency} x ${item.quantity}${sellingPriceDisplay})</span>
                             <span class="font-semibold text-gray-700">${item.amount.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>
                         `;
                         purchaseSummaryListElement.appendChild(listItem);
@@ -742,7 +876,135 @@
                 // 圓餅圖功能已移除，不再呼叫 drawPieChart
             }
 
-            // drawPieChart 方法已移除
+            // Helper function to escape values for CSV
+            escapeCsv(value) {
+                if (value === null || value === undefined) {
+                    return '';
+                }
+                let stringValue = String(value);
+                // If the value contains a comma, double quote, or newline, enclose it in double quotes
+                if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n') || stringValue.includes('\r')) {
+                    // Escape double quotes by doubling them
+                    stringValue = stringValue.replace(/"/g, '""');
+                    return `"${stringValue}"`;
+                }
+                return stringValue;
+            }
+
+            // Export data to CSV
+            exportToCsv() {
+                const csvRows = [];
+                const baseCurrency = this.exchangeRateManager.baseCurrency;
+                const currentDate = new Date().toISOString().slice(0, 10); //YYYY-MM-DD
+
+                // 1. Cost Calculation Items
+                csvRows.push(this.escapeCsv("成本計算項目"));
+                csvRows.push(
+                    [
+                        this.escapeCsv("項目名稱"),
+                        this.escapeCsv("原始金額"),
+                        this.escapeCsv("原始幣別"),
+                        this.escapeCsv("轉換後金額"),
+                        this.escapeCsv("基準幣別")
+                    ].join(',')
+                );
+                this.costCalculator.costItems.forEach(item => {
+                    const convertedAmount = item.amount * this.exchangeRateManager.getRate(item.currency);
+                    csvRows.push(
+                        [
+                            this.escapeCsv(item.name),
+                            this.escapeCsv(item.amount.toFixed(2)),
+                            this.escapeCsv(item.currency),
+                            this.escapeCsv(convertedAmount.toFixed(2)),
+                            this.escapeCsv(baseCurrency)
+                        ].join(',')
+                    );
+                });
+                csvRows.push(''); // Add a blank line for separation
+
+                // 2. Purchase Items
+                csvRows.push(this.escapeCsv("代購項目"));
+                csvRows.push(
+                    [
+                        this.escapeCsv("項目名稱"),
+                        this.escapeCsv("購買價格"),
+                        this.escapeCsv("數量"), // 新增數量欄位
+                        this.escapeCsv("販售價格 (TWD)"), 
+                        this.escapeCsv("原始幣別"),
+                        this.escapeCsv("轉換後購買總價"), // 更新標題為「購買總價」
+                        this.escapeCsv("基準幣別"),
+                        this.escapeCsv("賣場連結"),
+                        this.escapeCsv("表單連結")
+                    ].join(',')
+                );
+                this.purchaseList.items.forEach(item => {
+                    const totalPurchasePrice = item.purchasePrice * item.quantity; // 計算購買總價
+                    const convertedTotalPurchasePrice = totalPurchasePrice * this.exchangeRateManager.getRate(item.currency);
+                    csvRows.push(
+                        [
+                            this.escapeCsv(item.name),
+                            this.escapeCsv(item.purchasePrice.toFixed(2)),
+                            this.escapeCsv(item.quantity), // 匯出數量
+                            this.escapeCsv(item.sellingPrice ? item.sellingPrice.toFixed(2) : ''),
+                            this.escapeCsv(item.currency),
+                            this.escapeCsv(convertedTotalPurchasePrice.toFixed(2)),
+                            this.escapeCsv(baseCurrency),
+                            this.escapeCsv(item.storeLink || ''),
+                            this.escapeCsv(item.formLink || '')
+                        ].join(',')
+                    );
+                });
+                csvRows.push(''); // Add a blank line for separation
+
+                // 3. Exchange Rates
+                csvRows.push(this.escapeCsv("匯率設定 (相對於 " + baseCurrency + ")"));
+                csvRows.push(
+                    [
+                        this.escapeCsv("貨幣"),
+                        this.escapeCsv("匯率")
+                    ].join(',')
+                );
+                const sortedCurrencies = this.exchangeRateManager.availableCurrencies;
+                sortedCurrencies.forEach(currency => {
+                    if (currency !== baseCurrency) {
+                        const rate = this.exchangeRateManager.getRate(currency);
+                        csvRows.push(
+                            [
+                                this.escapeCsv(currency),
+                                this.escapeCsv(rate.toFixed(4))
+                            ].join(',')
+                        );
+                    }
+                });
+                csvRows.push(''); // Add a blank line for separation
+
+                // 4. Overall Total
+                const overallTotal = this.getAllItemsInBaseCurrency().reduce((sum, item) => sum + item.amount, 0);
+                csvRows.push(this.escapeCsv("總成本"));
+                csvRows.push(
+                    [
+                        this.escapeCsv("總計項目"),
+                        this.escapeCsv("總金額"),
+                        this.escapeCsv("基準幣別")
+                    ].join(',')
+                );
+                csvRows.push(
+                    [
+                        this.escapeCsv("所有項目總計"),
+                        this.escapeCsv(overallTotal.toFixed(2)),
+                        this.escapeCsv(baseCurrency)
+                    ].join(',')
+                );
+
+                const csvString = csvRows.join('\r\n');
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `旅行支出與代購_${currentDate}.csv`;
+                document.body.appendChild(link); // Required for Firefox
+                link.click();
+                document.body.removeChild(link); // Clean up
+            }
         }
 
         // MARK: - 全局實例和事件監聽器
@@ -834,8 +1096,6 @@
             }
 
             // 代購列表事件監聽器
-            // 儲存當前選擇的圖片 Base64 字串，以便在新增代購項目時使用
-            let currentPurchasePhotoDataUrl = null; 
             const MAX_IMAGE_SIZE_BYTES = 100 * 1024; // 100KB
             const imageCompressionCanvas = document.getElementById('imageCompressionCanvas');
             const imageCompressionCtx = imageCompressionCanvas.getContext('2d');
@@ -882,13 +1142,12 @@
 
                             // 顯示圖片預覽
                             document.getElementById('purchaseItemPhotoPreview').src = compressedDataUrl;
-                            currentPurchasePhotoDataUrl = compressedDataUrl; // 儲存壓縮後的 Base64 字串
+                            purchaseList.currentPurchasePhotoDataUrl = compressedDataUrl; // 儲存壓縮後的 Base64 字串
                             console.log(`圖片壓縮完成。原始尺寸: ${img.width}x${img.height}, 壓縮後尺寸: ${width.toFixed(0)}x${height.toFixed(0)}, 品質: ${quality.toFixed(1)}, 大小: ${compressedSize.toFixed(2)}KB`);
                         };
                         img.onerror = () => {
-                            console.error("載入圖片失敗。");
-                            alert("載入圖片失敗。");
-                            currentPurchasePhotoDataUrl = null;
+                            console.error("載入圖片失敗。"); // 移除 alert
+                            purchaseList.currentPurchasePhotoDataUrl = null;
                             document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
                         };
                         img.src = e.target.result; // 讀取 Base64 字串作為圖片源
@@ -896,33 +1155,65 @@
                     reader.onerror = (e) => {
                         console.error("讀取檔案失敗:", e);
                         alert("讀取檔案失敗。");
-                        currentPurchasePhotoDataUrl = null;
+                        purchaseList.currentPurchasePhotoDataUrl = null;
                         document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
                     };
                     reader.readAsDataURL(file); // 讀取檔案為 Base64 字串
                 } else {
-                    currentPurchasePhotoDataUrl = null;
+                    purchaseList.currentPurchasePhotoDataUrl = null;
                     document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片';
                 }
             });
 
             document.getElementById('addPurchaseItemBtn').addEventListener('click', () => {
                 const name = document.getElementById('purchaseItemName').value.trim();
-                const price = parseFloat(document.getElementById('purchaseItemPrice').value);
+                const purchasePrice = parseFloat(document.getElementById('purchaseItemPurchasePrice').value); // 獲取購買價格
+                const sellingPrice = parseFloat(document.getElementById('purchaseItemSellingPrice').value); // 獲取販售價格
                 const currency = document.getElementById('purchaseItemCurrency').value;
+                const quantity = parseInt(document.getElementById('purchaseItemQuantity').value); // 獲取數量
+                const storeLink = document.getElementById('purchaseItemStoreLink').value.trim(); // 獲取賣場連結
+                const formLink = document.getElementById('purchaseItemFormLink').value.trim(); // 獲取表單連結
 
-                if (name && !isNaN(price) && price > 0) {
-                    // 將 currentPurchasePhotoDataUrl 傳遞給 addPurchaseItem
-                    purchaseList.addPurchaseItem(name, price, currency, currentPurchasePhotoDataUrl);
-                    document.getElementById('purchaseItemName').value = '';
-                    document.getElementById('purchaseItemPrice').value = '';
-                    document.getElementById('purchaseItemPhotoInput').value = ''; // 清空檔案輸入框
-                    document.getElementById('purchaseItemPhotoPreview').src = 'https://placehold.co/100x100/e0e0e0/ffffff?text=無照片'; // 重設預覽
-                    currentPurchasePhotoDataUrl = null; // 清空暫存的 Base64 字串
+                // Log values for debugging
+                console.log('項目名稱 (name):', name);
+                console.log('購買價格 (purchasePrice):', purchasePrice);
+                console.log('數量 (quantity):', quantity);
+                console.log('isNaN(purchasePrice):', isNaN(purchasePrice));
+                console.log('purchasePrice > 0:', purchasePrice > 0);
+                console.log('isNaN(quantity):', isNaN(quantity));
+                console.log('quantity > 0:', quantity > 0);
+
+
+                if (name && !isNaN(purchasePrice) && purchasePrice > 0 && !isNaN(quantity) && quantity > 0) {
+                    if (purchaseList.currentEditingItemId) {
+                        // 更新現有項目
+                        purchaseList.updatePurchaseItem(
+                            purchaseList.currentEditingItemId,
+                            name,
+                            purchasePrice,
+                            currency,
+                            quantity, // 傳遞數量
+                            purchaseList.currentPurchasePhotoDataUrl, // 使用類別屬性
+                            storeLink,
+                            formLink,
+                            sellingPrice
+                        );
+                        console.log('項目已更新。');
+                    } else {
+                        // 新增項目
+                        purchaseList.addPurchaseItem(name, purchasePrice, currency, quantity, purchaseList.currentPurchasePhotoDataUrl, storeLink, formLink, sellingPrice); // 使用類別屬性
+                        console.log('項目已新增。');
+                    }
+                    purchaseList.clearPurchaseForm(); // 清空表單並重置狀態
                 } else {
-                    console.error('請輸入有效的項目名稱和價格。');
-                    alert('請輸入有效的項目名稱和價格。');
+                    console.error('請確認項目名稱不為空，且購買價格和數量為有效的正數。');
+                    alert('請確認項目名稱不為空，且購買價格和數量為有效的正數。');
                 }
+            });
+
+            // 取消編輯按鈕事件監聽器
+            document.getElementById('cancelEditPurchaseBtn').addEventListener('click', () => {
+                purchaseList.clearPurchaseForm(); // 清空表單並重置狀態
             });
 
             // 常用項目設定頁面的事件監聽器
@@ -940,6 +1231,11 @@
             document.getElementById('updateRatesBtn').addEventListener('click', () => {
                 exchangeRateManager.notifyListeners(); // 通知所有監聽者重新計算和渲染
                 alert('匯率已更新，所有相關金額已重新計算。'); // 提供用戶反饋
+            });
+
+            // CSV 匯出按鈕事件監聽器
+            document.getElementById('exportCsvBtn').addEventListener('click', () => {
+                totalCostSummary.exportToCsv();
             });
         });
     </script>

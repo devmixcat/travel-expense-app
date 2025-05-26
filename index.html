@@ -217,8 +217,7 @@
         </div>
     </div>
     <canvas id="imageCompressionCanvas" class="hidden"></canvas>
-
-    <script>
+    <canvas id="shareImageCanvas" class="hidden"></canvas> <script>
         // MARK: - 共用匯率管理
         class ExchangeRateManager {
             constructor() {
@@ -734,9 +733,9 @@
 
                 this.items.forEach(item => {
                     const listItem = document.createElement('li');
+                    // 移除整個 listItem 的 onclick 事件，因為要為單獨按鈕綁定事件
                     listItem.className = 'flex items-center py-3 px-2 hover:bg-gray-50 rounded-md';
-                    // 點擊整個列表項目來編輯
-                    listItem.onclick = () => this.editPurchaseItem(item.id);
+                    
 
                     // 使用 item.photoDataUrl 來顯示圖片，如果沒有則使用佔位符
                     const photoSrc = item.photoDataUrl || 'https://placehold.co/50x50/e0e0e0/ffffff?text=無';
@@ -756,9 +755,20 @@
                     const formLinkButtonHtml = item.formLink ? 
                         `<a href="${item.formLink}" target="_blank" onclick="event.stopPropagation();" class="ml-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition-colors duration-200 flex-shrink-0">查看表單</a>` : '';
 
+                    // 新增生成分享圖按鈕
+                    const shareImageButtonHtml = item.photoDataUrl && item.sellingPrice ? `
+                        <button data-id="${item.id}" 
+                                data-photo="${item.photoDataUrl}" 
+                                data-selling-price="${item.sellingPrice.toFixed(2)}"
+                                onclick="event.stopPropagation(); generateShareImage(this);"
+                                class="ml-2 bg-yellow-500 text-white px-3 py-1 rounded-md text-sm hover:bg-yellow-600 transition-colors duration-200 flex-shrink-0">
+                            生成銷售圖
+                        </button>
+                    ` : '';
+
                     listItem.innerHTML = `
-                        <img src="${photoSrc}" alt="${item.name}" class="w-12 h-12 object-cover rounded-md mr-4 flex-shrink-0">
-                        <div class="flex-grow min-w-0">
+                        <img src="${photoSrc}" alt="${item.name}" class="w-12 h-12 object-cover rounded-md mr-4 flex-shrink-0" onclick="event.stopPropagation(); purchaseList.editPurchaseItem(${item.id});">
+                        <div class="flex-grow min-w-0" onclick="event.stopPropagation(); purchaseList.editPurchaseItem(${item.id});">
                             <p class="text-gray-800 font-medium">${item.name} (數量: ${item.quantity})</p>
                             <p class="text-sm text-gray-600">購買價格: ${item.purchasePrice.toFixed(2)} ${item.currency}
                                 (<span class="font-semibold">${convertedTotalPurchasePrice.toFixed(2)} ${this.exchangeRateManager.baseCurrency}</span>)
@@ -767,7 +777,7 @@
                         </div>
                         ${storeLinkButtonHtml}
                         ${formLinkButtonHtml}
-                        <button data-id="${item.id}" onclick="event.stopPropagation(); purchaseList.removePurchaseItem(${item.id});" class="delete-purchase-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200 ml-2 flex-shrink-0">
+                        ${shareImageButtonHtml} <button data-id="${item.id}" onclick="event.stopPropagation(); purchaseList.removePurchaseItem(${item.id});" class="delete-purchase-item-btn bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600 transition-colors duration-200 ml-2 flex-shrink-0">
                             刪除
                         </button>
                     `;
@@ -1006,6 +1016,103 @@
                 document.body.removeChild(link); // Clean up
             }
         }
+
+        /**
+         * 根據提供的圖片和販售價格生成一張圖片，並提供下載。
+         * @param {HTMLElement} buttonElement - 觸發此函數的按鈕元素。
+         */
+        function generateShareImage(buttonElement) {
+            const photoDataUrl = buttonElement.dataset.photo;
+            const sellingPrice = parseFloat(buttonElement.dataset.sellingPrice);
+            const itemName = buttonElement.closest('li').querySelector('.text-gray-800').textContent.split(' (數量:')[0].trim(); // 從 li 中提取名稱
+
+            if (!photoDataUrl || isNaN(sellingPrice)) {
+                alert('沒有圖片或販售價格，無法生成銷售圖。');
+                return;
+            }
+
+            const canvas = document.getElementById('shareImageCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const img = new Image();
+            img.onload = () => {
+                const padding = 30; // 圖片和文字周圍的邊距
+                const priceText = `NT$ ${sellingPrice.toFixed(0)}`; // 販售價格，不顯示小數點
+
+                // 計算文字尺寸
+                ctx.font = 'bold 60px Arial'; // 測試字體大小
+                const textMetrics = ctx.measureText(priceText);
+                const textHeight = 60; // 假設字體高度約等於字體大小
+
+                // 計算 canvas 尺寸
+                // 圖片寬高比
+                const imgAspectRatio = img.width / img.height;
+                let drawImgWidth, drawImgHeight;
+                const maxImgWidth = 600 - padding * 2; // 預設圖片最大寬度
+                const maxImgHeight = 600 - padding * 2 - textHeight - padding; // 預設圖片最大高度 (考慮文字空間)
+
+                if (img.width > maxImgWidth || img.height > maxImgHeight) {
+                    if (imgAspectRatio > 1) { // 寬圖
+                        drawImgWidth = maxImgWidth;
+                        drawImgHeight = drawImgWidth / imgAspectRatio;
+                        if (drawImgHeight > maxImgHeight) { // 如果縮放後的高度還是太高
+                            drawImgHeight = maxImgHeight;
+                            drawImgWidth = drawImgHeight * imgAspectRatio;
+                        }
+                    } else { // 高圖或方圖
+                        drawImgHeight = maxImgHeight;
+                        drawImgWidth = drawImgHeight * imgAspectRatio;
+                        if (drawImgWidth > maxImgWidth) { // 如果縮放後的寬度還是太寬
+                            drawImgWidth = maxImgWidth;
+                            drawImgHeight = drawImgWidth / imgAspectRatio;
+                        }
+                    }
+                } else {
+                    drawImgWidth = img.width;
+                    drawImgHeight = img.height;
+                }
+
+                const canvasWidth = Math.max(drawImgWidth + padding * 2, textMetrics.width + padding * 2);
+                const canvasHeight = drawImgHeight + textHeight + padding * 3; // 圖片上方、圖片下方與文字、文字下方
+
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+
+                // 繪製白色背景
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // 繪製圖片
+                const imgX = (canvas.width - drawImgWidth) / 2;
+                const imgY = padding; // 圖片從上方邊距開始
+                ctx.drawImage(img, imgX, imgY, drawImgWidth, drawImgHeight);
+
+                // 繪製價格
+                ctx.fillStyle = '#000000'; // 將顏色從紅色 (#FF0000) 改為黑色 (#000000)
+                ctx.font = 'bold 48px Arial'; // 字體大小
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const textX = canvas.width / 2;
+                const textY = imgY + drawImgHeight + padding + (textHeight / 2); // 圖片下方留白再繪製文字
+                ctx.fillText(priceText, textX, textY);
+                
+                // 匯出圖片
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // 0.9 壓縮品質
+
+                // 建立下載連結
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `${itemName}_銷售圖.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+            img.onerror = () => {
+                alert('圖片載入失敗，無法生成銷售圖。');
+            };
+            img.src = photoDataUrl;
+        }
+
 
         // MARK: - 全局實例和事件監聽器
         let exchangeRateManager;

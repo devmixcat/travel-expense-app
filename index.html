@@ -52,11 +52,11 @@
             flex-grow: 1; /* 允許項目增長 */
         }
         /* 針對代購列表中的價格資訊，確保其能夠適應空間 */
-       #purchaseItemsList li .text-sm {
-            white-space: normal;       /* 允許自動換行 */
-            overflow: visible;         /* 顯示超出部分 */
-            text-overflow: unset;      /* 取消省略號 */
-            max-width: 100%;           /* 取消最大寬度限制 */
+        #purchaseItemsList li .text-sm {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: calc(100% - 70px); /* 調整以避免與按鈕重疊 */
         }
         /* 針對代購列表的查看賣場按鈕，確保其不會因為文字過長而被擠壓 */
         #purchaseItemsList li a {
@@ -68,9 +68,6 @@
         #purchaseItemsList li {
             cursor: pointer;
             transition: background-color 0.2s ease-in-out;
-        }
-        #purchaseItemsList li {
-            flex-wrap: wrap; /* 若內容過長自動換行 */
         }
         #purchaseItemsList li:hover {
             background-color: #f0f0f0; /* 懸停時的背景色 */

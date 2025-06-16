@@ -54,10 +54,9 @@
         /* 針對代購列表中的價格資訊，確保其能夠適應空間 */
         #purchaseItemsList li .text-sm {
             white-space: nowrap;
-            overflow: visible;
+            overflow: hidden;
             text-overflow: ellipsis;
             max-width: calc(100% - 70px); /* 調整以避免與按鈕重疊 */
-            word-break: break-word;
         }
         /* 針對代購列表的查看賣場按鈕，確保其不會因為文字過長而被擠壓 */
         #purchaseItemsList li a {
